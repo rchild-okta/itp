@@ -63,6 +63,8 @@ This statistics collection is not affected by any combination of:
 
 #### Dow Jones
 
+> :warning: Removed in [#188756](https://bugs.webkit.org/show_bug.cgi?id=188756) - [Remove experimental affiliated domain code now that StorageAccess API is available](https://github.com/WebKit/webkit/commit/d91eb617805ac70fc01f5aa3201086c3b2c15d56).
+
 Statistics are not logged when navigating between pages on the same domain. There is also some hardcoded logic for ignoring navigations between *associated domains* - this stemmed from [#174661 May get frequently logged out of wsj.com](https://bugs.webkit.org/show_bug.cgi?id=174661) and is a hardcoded list of domain associations that are exempt from statistics collection.
 
 [The original commit](https://github.com/WebKit/webkit/commit/0a88fc73392d26beeaa996b9364c359984fba887) associates `dowjones.com`, `wsj.com`, `barrons.com`, `marketwatch.com`, and `wsjplus.com`, which form a classic SSO scenario - WJS, Barrons, and the others have a sign-in link that redirects to a shared *sso.accounts.dowjones.com* account chooser.
@@ -70,6 +72,8 @@ Statistics are not logged when navigating between pages on the same domain. Ther
 The code has since moved to [ResourceLoadStatistics.cpp](https://github.com/WebKit/webkit/blob/e460e444bb89d90a2ba96087f1c94ae0360f778a/Source/WebCore/loader/ResourceLoadStatistics.cpp#L361-L373), and Dow Jones is still the only exception in the list.
 
 #### Adobe
+
+> :warning: Removed in [#188710](https://bugs.webkit.org/show_bug.cgi?id=188710) - [Remove Adobe SSO exception now that StorageAccess API is available](https://github.com/WebKit/webkit/commit/a0a4879d0006cf97b5af06bcf72a19f874dda252).
 
 Another more general approach to whitelisting SSO scenarios is from [#174533 Can no longer log in on abc.go.com](https://bugs.webkit.org/show_bug.cgi?id=174533), where *abc.go.com* and others used *sp.auth.adobe.com* as their IdP and it became marked as prevalent. In this approach, there are no associated domains - a host is whitelisted from any statistics collection and cannot be marked as prevalent.
 
