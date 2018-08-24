@@ -23,6 +23,7 @@
   - [hasStorageAccess](#hasstorageaccess)
   - [requestStorageAccess](#requeststorageaccess)
   - [Lifetime of storage access](#lifetime-of-storage-access)
+  - [User prompt when requesting access](#user-prompt-when-requesting-access)
   - [Exceptions](#exceptions)
     - [Popups after requestStorageAccess](#popups-after-requeststorageaccess)
 - [Miscellaneous](#miscellaneous)
@@ -409,9 +410,6 @@ If requesting access for a prevalent domain where the user has already given con
 
 Access must be requested for each third-party resource on the page - consent given to one subframe will not implicitly transfer to another subframe, even if that subframe is on the same domain. However, if the user allows access, their choice is persisted for that domain and the next `requestStorageAccess` call will not prompt the user.
 
-From the **User Prompt for the Storage Access API** section in [ITP 2.0](https://webkit.org/blog/8311/intelligent-tracking-prevention-2-0/):
-> If the user allows access, their choice is persisted. If the user declines, their choice is not persisted which allows them to change their mind if they at a later point tap a similar embedded widget that calls the Storage Access API.
-
 **#2: If the document has a null origin, reject.**
 
 By default, a [sandboxed iframe](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/iframe#attr-sandbox) will have a unique, or null, origin. If this is the case, `requestStorageAccess` immediately rejects because there are no first-party cookies to return. To get around this, a sandboxed iframe *must* have the `allow-same-origin` token, which allows the content to be treated from its original, third-party origin.
@@ -530,6 +528,36 @@ Some concrete examples:
 - [request-and-grant-access-cross-origin-sandboxed-iframe-from-prevalent-domain-with-user-interaction-but-access-from-wrong-frame](https://github.com/WebKit/webkit/blob/master/LayoutTests/http/tests/storageAccess/request-and-grant-access-cross-origin-sandboxed-iframe-from-prevalent-domain-with-user-interaction-but-access-from-wrong-frame.html)
 - [request-and-grant-access-then-detach-should-not-have-access](https://github.com/WebKit/webkit/blob/master/LayoutTests/http/tests/storageAccess/request-and-grant-access-then-detach-should-not-have-access.html)
 - [request-and-grant-access-then-navigate-should-not-have-access](https://github.com/WebKit/webkit/blob/master/LayoutTests/http/tests/storageAccess/request-and-grant-access-then-navigate-should-not-have-access.html)
+
+### User prompt when requesting access
+
+From the **User Prompt for the Storage Access API** section in [ITP 2.0](https://webkit.org/blog/8311/intelligent-tracking-prevention-2-0/):
+> If the user allows access, their choice is persisted. If the user declines, their choice is not persisted which allows them to change their mind if they at a later point tap a similar embedded widget that calls the Storage Access API.
+
+The choice to allow access via the `requestStorageAccess` prompt is persisted for the same lifetime as that domain's cookies and website data:
+- A rolling 30 day window from the last logged user interaction on the site.
+- Or, it is reset when storage is cleared via the *remove all website data* feature.
+
+Calling `requestStorageAccess` with this saved value does not prompt the user. However, this call must still be made *within the context of a user gesture* - if it is not, it will reject.
+
+**Example embedded iframe redirect flow**
+1. `rp.example` loads an embedded iframe to a prevalent resource, `idp.example/page1`.
+    - Because `idp.example` is prevalent, `hasStorageAccess()` is `false` on frame load.
+2. `idp.example/page1` has two buttons:
+    1. A *request access* button that calls `requestStorageAccess()`.
+    2. A *navigate* button that redirects to `idp.example/page2`
+3. The user clicks *request access* and is prompted with the storage access prompt. They grant access.
+    - Because they granted access, `hasStorageAccess()` is now `true`.
+4. The user then clicks *navigate*, which redirects them to `idp.example/page2`.
+    - Because there's an internal redirect, storage access is revoked. `hasStorageAccess()` is `false`.
+    - Calling `requestStorageAccess()` directly will reject, even though the user has already granted access to this domain. It must be called within the context of a user gesture.
+    - Clicking a button that calls `requestStorageAccess()` will resolve without prompting the user. `hasStorageAccess` is `true`.
+
+**Source Resources**
+- [#185454](https://bugs.webkit.org/show_bug.cgi?id=185454) - [Make user opt-in sticky](https://github.com/WebKit/webkit/commit/c294b05cbeb7a6754f95718d04573aae2d0acb40)
+- [#174235](https://bugs.webkit.org/show_bug.cgi?id=174235) - [Use a rolling 30-day uptime for processing statistics](https://github.com/WebKit/webkit/commit/18f0c7df7397008c9fd35c1cdddad3620cca60f3)
+- [#167474](https://bugs.webkit.org/show_bug.cgi?id=167474) - [Updates to Resource Load Statistics: Get the right website data store and introduce timeout for user interaction](https://github.com/WebKit/webkit/commit/a1514afcbac711363e142386dd67c89b87deee77)
+
 
 ### Exceptions
 
